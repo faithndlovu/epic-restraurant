@@ -139,6 +139,23 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      grant_admin: {
+        Args: { _email: string };
+        Returns: string;
+      };
+      list_admins: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          user_id: string;
+          email: string;
+          display_name: string | null;
+          granted_at: string;
+        }[];
+      };
+      revoke_admin: {
+        Args: { _user_id: string };
+        Returns: undefined;
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];

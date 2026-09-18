@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin/menu")({
@@ -26,6 +26,24 @@ type Item = {
 };
 
 const categories = ["Starters", "Main Courses", "Desserts", "Drinks"];
+
+// Must match the menu-images bucket limits in the admin_features migration.
+const IMAGE_BUCKET = "menu-images";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+async function uploadDishImage(file: File): Promise<string> {
+  if (!IMAGE_TYPES.includes(file.type)) throw new Error("Use a JPG, PNG or WebP image.");
+  if (file.size > MAX_IMAGE_BYTES) throw new Error("Image must be 5 MB or smaller.");
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  // Unique name per upload, so a replaced photo never shows a stale cached copy.
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
+  if (error) throw new Error(error.message);
+  return supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+}
 
 function emptyDraft(): Omit<Item, "id"> {
   return {
@@ -226,13 +244,32 @@ function DraftForm({
   isNew,
 }: {
   draft: Omit<Item, "id">;
-  setDraft: (d: Omit<Item, "id">) => void;
+  setDraft: React.Dispatch<React.SetStateAction<Omit<Item, "id">>>;
   onCancel: () => void;
   onSave: () => void;
   isNew: boolean;
 }) {
   const set = <K extends keyof Omit<Item, "id">>(k: K, v: Omit<Item, "id">[K]) =>
     setDraft({ ...draft, [k]: v });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file after an error
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const url = await uploadDishImage(file);
+      // Functional update: keep anything typed into the form while uploading.
+      setDraft((d) => ({ ...d, image_url: url }));
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
   const input =
     "w-full bg-secondary rounded-md px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-gold border border-transparent focus:border-gold/50";
   return (
@@ -302,17 +339,43 @@ function DraftForm({
             placeholder="Signature, Chef's Pick…"
           />
         </label>
-        <label className="block md:col-span-2">
+        <div className="md:col-span-2">
           <span className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
-            Image URL
+            Photo
           </span>
-          <input
-            className={input}
-            value={draft.image_url ?? ""}
-            onChange={(e) => set("image_url", e.target.value)}
-            placeholder="https://…"
-          />
-        </label>
+          <div className="flex items-start gap-4">
+            <div className="h-24 w-24 shrink-0 rounded-md bg-secondary overflow-hidden grid place-items-center">
+              {draft.image_url ? (
+                <img src={draft.image_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs text-muted-foreground">No photo</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <label
+                className={`inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm cursor-pointer hover:border-gold/60 hover:text-gold ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {uploading ? "Uploading…" : draft.image_url ? "Replace photo" : "Upload photo"}
+                <input
+                  type="file"
+                  accept={IMAGE_TYPES.join(",")}
+                  className="sr-only"
+                  onChange={onPickImage}
+                  disabled={uploading}
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">JPG, PNG or WebP, up to 5 MB.</p>
+              {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
+              <input
+                className={input}
+                value={draft.image_url ?? ""}
+                onChange={(e) => set("image_url", e.target.value)}
+                placeholder="…or paste an image URL"
+              />
+            </div>
+          </div>
+        </div>
         <label className="block">
           <span className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
             Sort order
@@ -340,7 +403,8 @@ function DraftForm({
         </button>
         <button
           onClick={onSave}
-          className="btn-gold rounded-full px-5 py-2 text-sm inline-flex items-center gap-2"
+          disabled={uploading}
+          className="btn-gold rounded-full px-5 py-2 text-sm inline-flex items-center gap-2 disabled:opacity-60"
         >
           <Save size={14} /> Save
         </button>

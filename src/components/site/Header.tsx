@@ -73,7 +73,7 @@ export function Header() {
         <div className="hidden lg:flex items-center gap-3">
           {isAdmin && (
             <Link
-              to="/admin/menu"
+              to="/admin"
               className="text-xs tracking-wider uppercase text-gold hover:text-gold-bright inline-flex items-center gap-1.5"
             >
               <ShieldCheck size={14} /> Admin
@@ -128,7 +128,7 @@ export function Header() {
             ))}
             {isAdmin && (
               <Link
-                to="/admin/menu"
+                to="/admin"
                 onClick={() => setOpen(false)}
                 className="py-3 text-gold border-b border-border/60 inline-flex items-center gap-2"
               >

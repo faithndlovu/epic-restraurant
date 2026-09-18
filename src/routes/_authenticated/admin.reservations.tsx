@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { updateReservationStatus } from "@/lib/admin.functions";
 import { Check, X, Trash2, Calendar, Mail, Phone, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/reservations")({
@@ -33,6 +35,9 @@ function AdminReservations() {
   const [rows, setRows] = useState<Reservation[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const updateStatus = useServerFn(updateReservationStatus);
 
   async function load() {
     const { data, error } = await supabase
@@ -48,17 +53,35 @@ function AdminReservations() {
     load();
   }, []);
 
-  // These writes go through RLS; without surfacing the error a blocked update
-  // looks exactly like a successful one once the list reloads unchanged.
-  async function setStatus(id: string, status: Reservation["status"]) {
+  // Goes through a server function so confirm/cancel can email the guest.
+  // It runs as the signed-in admin, so RLS still guards the update.
+  async function setStatus(r: Reservation, status: Reservation["status"]) {
+    if (status === "cancelled" && !confirm(`Cancel ${r.name}'s booking and email them?`)) return;
     setError(null);
-    const { error } = await supabase.from("reservations").update({ status }).eq("id", id);
-    if (error) return setError(error.message);
-    load();
+    setNotice(null);
+    setBusyId(r.id);
+    try {
+      const result = await updateStatus({ data: { id: r.id, status, notifyGuest: true } });
+      if (status === "confirmed" || status === "cancelled") {
+        setNotice(
+          result.emailed
+            ? `Marked ${status} and emailed ${r.email}.`
+            : result.emailConfigured
+              ? `Marked ${status}, but the email to ${r.email} failed — check the server log.`
+              : `Marked ${status}. No email sent: RESEND_API_KEY isn't configured.`,
+        );
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the reservation.");
+    } finally {
+      setBusyId(null);
+    }
   }
   async function remove(id: string) {
     if (!confirm("Delete this reservation?")) return;
     setError(null);
+    setNotice(null);
     const { error } = await supabase.from("reservations").delete().eq("id", id);
     if (error) return setError(error.message);
     load();
@@ -97,6 +120,11 @@ function AdminReservations() {
       {error && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">
           {error}
+        </div>
+      )}
+      {notice && (
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm p-3">
+          {notice}
         </div>
       )}
 
@@ -141,24 +169,27 @@ function AdminReservations() {
             <div className="flex flex-wrap gap-2 lg:justify-end">
               {r.status !== "confirmed" && (
                 <button
-                  onClick={() => setStatus(r.id, "confirmed")}
-                  className="btn-gold rounded-full px-4 py-2 text-xs inline-flex items-center gap-1"
+                  onClick={() => setStatus(r, "confirmed")}
+                  disabled={busyId === r.id}
+                  className="disabled:opacity-50 btn-gold rounded-full px-4 py-2 text-xs inline-flex items-center gap-1"
                 >
                   <Check size={14} /> Confirm
                 </button>
               )}
               {r.status !== "cancelled" && (
                 <button
-                  onClick={() => setStatus(r.id, "cancelled")}
-                  className="rounded-full border border-border px-4 py-2 text-xs inline-flex items-center gap-1 hover:border-red-400/60 hover:text-red-300"
+                  onClick={() => setStatus(r, "cancelled")}
+                  disabled={busyId === r.id}
+                  className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs inline-flex items-center gap-1 hover:border-red-400/60 hover:text-red-300"
                 >
                   <X size={14} /> Cancel
                 </button>
               )}
               {r.status === "confirmed" && (
                 <button
-                  onClick={() => setStatus(r.id, "completed")}
-                  className="rounded-full border border-border px-4 py-2 text-xs"
+                  onClick={() => setStatus(r, "completed")}
+                  disabled={busyId === r.id}
+                  className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs"
                 >
                   Mark done
                 </button>

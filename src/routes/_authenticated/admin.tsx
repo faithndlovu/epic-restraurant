@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { UtensilsCrossed, CalendarCheck, ShieldCheck } from "lucide-react";
+import { UtensilsCrossed, CalendarCheck, ShieldCheck, LayoutDashboard, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async ({ context }) => {
@@ -31,12 +31,14 @@ function AdminLayout() {
           <p className="mt-3 text-muted-foreground">Manage your menu and incoming reservations.</p>
 
           <nav className="mt-8 flex flex-wrap gap-2">
-            <AdminTab to="/admin/menu" icon={<UtensilsCrossed size={14} />} label="Menu" />
+            <AdminTab to="/admin" exact icon={<LayoutDashboard size={14} />} label="Dashboard" />
             <AdminTab
               to="/admin/reservations"
               icon={<CalendarCheck size={14} />}
               label="Reservations"
             />
+            <AdminTab to="/admin/menu" icon={<UtensilsCrossed size={14} />} label="Menu" />
+            <AdminTab to="/admin/admins" icon={<Users size={14} />} label="Admins" />
           </nav>
         </div>
       </section>
@@ -50,10 +52,22 @@ function AdminLayout() {
   );
 }
 
-function AdminTab({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+function AdminTab({
+  to,
+  icon,
+  label,
+  exact = false,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  exact?: boolean;
+}) {
   return (
     <Link
       to={to}
+      // Without exact, the Dashboard tab (/admin) would stay highlighted on every sub-page.
+      activeOptions={{ exact }}
       className="px-5 py-2 rounded-full text-sm border border-border text-muted-foreground hover:text-gold hover:border-gold/60 transition inline-flex items-center gap-2"
       activeProps={{ className: "bg-gold text-charcoal border-gold hover:text-charcoal" }}
     >

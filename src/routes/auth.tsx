@@ -21,6 +21,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -32,10 +33,11 @@ function AuthPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -44,6 +46,13 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // With email confirmation on, signUp returns no session until the
+        // link is clicked — tell the user instead of silently redirecting.
+        if (!data.session) {
+          setNotice(`Check ${email} for a confirmation link, then sign in here.`);
+          setMode("signin");
+          return;
+        }
         navigate({ to: "/" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -137,6 +146,7 @@ function AuthPage() {
               className="w-full bg-secondary rounded-md px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-gold border border-transparent focus:border-gold/50"
             />
             {error && <p className="text-sm text-red-400">{error}</p>}
+            {notice && <p className="text-sm text-gold">{notice}</p>}
             <button
               type="submit"
               disabled={busy}

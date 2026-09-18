@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminReservationsRouteImport } from './routes/_authenticated/admin.reservations'
 import { Route as AuthenticatedAdminMenuRouteImport } from './routes/_authenticated/admin.menu'
+import { Route as AuthenticatedAdminAdminsRouteImport } from './routes/_authenticated/admin.admins'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -88,6 +89,12 @@ const AuthenticatedAdminMenuRoute = AuthenticatedAdminMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminAdminsRoute =
+  AuthenticatedAdminAdminsRouteImport.update({
+    id: '/admins',
+    path: '/admins',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/admin/reservations': typeof AuthenticatedAdminReservationsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -112,6 +120,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/admin/reservations': typeof AuthenticatedAdminReservationsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -128,6 +137,7 @@ export interface FileRoutesById {
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/_authenticated/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/_authenticated/admin/reservations': typeof AuthenticatedAdminReservationsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/reservations'
     | '/sitemap.xml'
     | '/admin'
+    | '/admin/admins'
     | '/admin/menu'
     | '/admin/reservations'
     | '/admin/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/reservations'
     | '/sitemap.xml'
+    | '/admin/admins'
     | '/admin/menu'
     | '/admin/reservations'
     | '/admin'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/reservations'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/admin/admins'
     | '/_authenticated/admin/menu'
     | '/_authenticated/admin/reservations'
     | '/_authenticated/admin/'
@@ -282,16 +295,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMenuRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/admins': {
+      id: '/_authenticated/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AuthenticatedAdminAdminsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAdminsRoute: typeof AuthenticatedAdminAdminsRoute
   AuthenticatedAdminMenuRoute: typeof AuthenticatedAdminMenuRoute
   AuthenticatedAdminReservationsRoute: typeof AuthenticatedAdminReservationsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAdminsRoute: AuthenticatedAdminAdminsRoute,
   AuthenticatedAdminMenuRoute: AuthenticatedAdminMenuRoute,
   AuthenticatedAdminReservationsRoute: AuthenticatedAdminReservationsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
