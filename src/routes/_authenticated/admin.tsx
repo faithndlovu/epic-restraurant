@@ -1,0 +1,63 @@
+import { createFileRoute, Outlet, redirect, Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { SiteLayout } from "@/components/site/SiteLayout";
+import { UtensilsCrossed, CalendarCheck, ShieldCheck } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/admin")({
+  beforeLoad: async ({ context }) => {
+    const user = (context as { user?: { id: string } }).user;
+    if (!user) throw redirect({ to: "/auth" });
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!data) throw redirect({ to: "/" });
+  },
+  component: AdminLayout,
+});
+
+function AdminLayout() {
+  return (
+    <SiteLayout>
+      <section className="py-24 md:py-28 bg-charcoal border-b border-border">
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <div className="flex items-center gap-3 mb-3">
+            <ShieldCheck className="text-gold" size={20} />
+            <span className="text-xs tracking-[0.35em] uppercase text-gold">Admin</span>
+          </div>
+          <h1 className="font-display text-4xl md:text-5xl">Restaurant Console</h1>
+          <p className="mt-3 text-muted-foreground">Manage your menu and incoming reservations.</p>
+
+          <nav className="mt-8 flex flex-wrap gap-2">
+            <AdminTab to="/admin/menu" icon={<UtensilsCrossed size={14} />} label="Menu" />
+            <AdminTab
+              to="/admin/reservations"
+              icon={<CalendarCheck size={14} />}
+              label="Reservations"
+            />
+          </nav>
+        </div>
+      </section>
+
+      <section className="py-12 md:py-16">
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <Outlet />
+        </div>
+      </section>
+    </SiteLayout>
+  );
+}
+
+function AdminTab({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="px-5 py-2 rounded-full text-sm border border-border text-muted-foreground hover:text-gold hover:border-gold/60 transition inline-flex items-center gap-2"
+      activeProps={{ className: "bg-gold text-charcoal border-gold hover:text-charcoal" }}
+    >
+      {icon} {label}
+    </Link>
+  );
+}
