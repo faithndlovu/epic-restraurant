@@ -60,7 +60,12 @@ async function resolveStatic(pathname) {
 }
 
 function toWebRequest(req) {
-  const url = `http://${req.headers.host ?? `localhost:${port}`}${req.url}`;
+  // Most Node hosts terminate TLS at a proxy, so trust the forwarded proto/host.
+  // The CSRF middleware compares the browser's Origin against this URL; a
+  // hard-coded http:// would reject every same-site request made over https.
+  const proto = req.headers["x-forwarded-proto"]?.split(",")[0].trim() ?? "http";
+  const host = req.headers["x-forwarded-host"] ?? req.headers.host ?? `localhost:${port}`;
+  const url = `${proto}://${host}${req.url}`;
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
   return new Request(url, {
     method: req.method,

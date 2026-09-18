@@ -2,9 +2,7 @@
 
 A TanStack Start (React 19 + Vite) website with a Supabase backend.
 
-This project was originally scaffolded on Lovable. All Lovable-specific code,
-dependencies, and hosting glue have been removed — it now runs on a standard,
-self-contained TanStack Start + Vite toolchain.
+It runs on a standard, self-contained TanStack Start + Vite toolchain.
 
 ## Requirements
 
@@ -57,8 +55,8 @@ must be present at **build** time.
 1. **Apply the menu-image migration.** The site images now live in
    `public/images/` and are wired into the homepage, About, Gallery, etc. via
    `src/assets/images.ts`. The public **Menu** page (`/menu`), however, reads
-   images from the `menu_items` table in Supabase, which still holds the old
-   Lovable CDN URLs. Run the new migration
+   images from the `menu_items` table in Supabase, which may still hold the old
+   external CDN URLs. Run the new migration
    `supabase/migrations/20260624190000_update_menu_images.sql` against your
    database (e.g. `supabase db push`, or paste it into the Supabase SQL editor)
    to point those rows at the local images. You can also edit images per-dish in

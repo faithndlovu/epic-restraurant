@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-const BASE_URL = "";
-
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        // Sitemap <loc> values must be absolute. Prefer an explicit SITE_URL,
+        // otherwise use the origin this request was served from.
+        const baseUrl = (process.env.SITE_URL || new URL(request.url).origin).replace(/\/$/, "");
         const entries = [
           { path: "/", priority: "1.0" },
           { path: "/about" },
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         const urls = entries
           .map(
             (e) =>
-              `  <url><loc>${BASE_URL}${e.path}</loc>${e.priority ? `<priority>${e.priority}</priority>` : ""}</url>`,
+              `  <url><loc>${baseUrl}${e.path}</loc>${e.priority ? `<priority>${e.priority}</priority>` : ""}</url>`,
           )
           .join("\n");
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;

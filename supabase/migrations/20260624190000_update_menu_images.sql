@@ -1,5 +1,5 @@
 -- Point existing menu_items rows at the local images in /public/images.
--- (The original seed used Lovable CDN URLs, which no longer resolve.)
+-- (The original seed used external CDN URLs, which no longer resolve.)
 update public.menu_items set image_url = '/images/epicfood3.png'    where name = 'Crispy Chicken Bites';
 update public.menu_items set image_url = '/images/epicfood2.png'    where name = 'Garden Crisp Salad';
 update public.menu_items set image_url = '/images/epicsamosas.png'  where name = 'Spring Rolls';
