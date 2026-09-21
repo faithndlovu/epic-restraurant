@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminReservationsRouteImport } from './routes/_authenticated/admin.reservations'
@@ -68,6 +69,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth_/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/admin/reservations': typeof AuthenticatedAdminReservationsRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/admin/reservations': typeof AuthenticatedAdminReservationsRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/reservations': typeof ReservationsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth_/callback': typeof AuthCallbackRoute
   '/_authenticated/admin/admins': typeof AuthenticatedAdminAdminsRoute
   '/_authenticated/admin/menu': typeof AuthenticatedAdminMenuRoute
   '/_authenticated/admin/reservations': typeof AuthenticatedAdminReservationsRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/reservations'
     | '/sitemap.xml'
     | '/admin'
+    | '/auth/callback'
     | '/admin/admins'
     | '/admin/menu'
     | '/admin/reservations'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/reservations'
     | '/sitemap.xml'
+    | '/auth/callback'
     | '/admin/admins'
     | '/admin/menu'
     | '/admin/reservations'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/reservations'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/auth_/callback'
     | '/_authenticated/admin/admins'
     | '/_authenticated/admin/menu'
     | '/_authenticated/admin/reservations'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   ReservationsRoute: typeof ReservationsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth_/callback': {
+      id: '/auth_/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   ReservationsRoute: ReservationsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

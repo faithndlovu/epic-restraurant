@@ -41,7 +41,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: { display_name: name },
           },
         });
@@ -70,11 +70,11 @@ function AuthPage() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) setError(error.message ?? "Google sign-in failed");
-    // On success Supabase redirects the browser to Google; the auth state
-    // listener in __root.tsx handles the post-redirect session.
+    // On success Supabase redirects the browser to Google, which comes back
+    // to /auth/callback with the session in the URL.
   }
 
   return (
