@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
+import { realtimeTransport } from "./realtime-transport";
 
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
@@ -49,6 +50,7 @@ function createSupabaseClient() {
     global: {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
+    realtime: { transport: realtimeTransport },
     auth: {
       storage: typeof window !== "undefined" ? localStorage : undefined,
       persistSession: true,

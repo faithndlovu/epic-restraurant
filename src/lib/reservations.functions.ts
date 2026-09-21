@@ -46,5 +46,5 @@ export const submitReservation = createServerFn({ method: "POST" })
       ),
     ]);
 
-    return { id: row.id as string, emailed: guestSent };
+    return { id: row.id as string, emailed: guestSent.sent };
   });

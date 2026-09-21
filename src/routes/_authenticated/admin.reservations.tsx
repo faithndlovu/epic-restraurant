@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { updateReservationStatus } from "@/lib/admin.functions";
+import { useConfirm } from "@/hooks/use-confirm";
+import { toast } from "sonner";
 import { Check, X, Trash2, Calendar, Mail, Phone, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/reservations")({
@@ -31,13 +33,19 @@ type Reservation = {
 const FILTERS = ["all", "pending", "confirmed", "cancelled", "completed"] as const;
 type Filter = (typeof FILTERS)[number];
 
+// Cancelled and completed are end states — the visit either happened or it
+// won't. Deleting the record is the only thing left to offer.
+function isClosed(status: Reservation["status"]) {
+  return status === "cancelled" || status === "completed";
+}
+
 function AdminReservations() {
   const [rows, setRows] = useState<Reservation[] | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const updateStatus = useServerFn(updateReservationStatus);
+  const { confirm, dialog } = useConfirm();
 
   async function load() {
     const { data, error } = await supabase
@@ -56,34 +64,54 @@ function AdminReservations() {
   // Goes through a server function so confirm/cancel can email the guest.
   // It runs as the signed-in admin, so RLS still guards the update.
   async function setStatus(r: Reservation, status: Reservation["status"]) {
-    if (status === "cancelled" && !confirm(`Cancel ${r.name}'s booking and email them?`)) return;
-    setError(null);
-    setNotice(null);
+    if (
+      status === "cancelled" &&
+      !(await confirm({
+        title: `Cancel ${r.name}'s booking?`,
+        description: `The reservation for ${r.party_size} on ${r.reservation_date} at ${r.reservation_time} will be marked cancelled, and ${r.email} will be emailed to let them know.`,
+        confirmLabel: "Cancel booking",
+        cancelLabel: "Keep booking",
+        destructive: true,
+      }))
+    )
+      return;
     setBusyId(r.id);
     try {
       const result = await updateStatus({ data: { id: r.id, status, notifyGuest: true } });
-      if (status === "confirmed" || status === "cancelled") {
-        setNotice(
-          result.emailed
-            ? `Marked ${status} and emailed ${r.email}.`
-            : result.emailConfigured
-              ? `Marked ${status}, but the email to ${r.email} failed — check the server log.`
-              : `Marked ${status}. No email sent: RESEND_API_KEY isn't configured.`,
-        );
+      if (status !== "confirmed" && status !== "cancelled") {
+        toast.success(`Marked ${status}.`);
+      } else if (result.emailed) {
+        toast.success(`Marked ${status}`, { description: `${r.email} has been emailed.` });
+      } else {
+        // The status change did stick — only the email failed, so this is a
+        // warning, not an error, and it carries the reason Resend gave us.
+        toast.warning(`Marked ${status}, but the email wasn't sent`, {
+          description: result.emailError ?? "No reason was reported.",
+          duration: 12000,
+        });
       }
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update the reservation.");
+      toast.error(err instanceof Error ? err.message : "Could not update the reservation.");
     } finally {
       setBusyId(null);
     }
   }
   async function remove(id: string) {
-    if (!confirm("Delete this reservation?")) return;
-    setError(null);
-    setNotice(null);
+    if (
+      !(await confirm({
+        title: "Delete this reservation?",
+        description:
+          "It will be removed permanently. The guest is not notified — cancel the booking instead if you want them emailed.",
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
     const { error } = await supabase.from("reservations").delete().eq("id", id);
-    if (error) return setError(error.message);
+    if (error)
+      return toast.error("Could not delete the reservation", { description: error.message });
+    toast.success("Reservation deleted.");
     load();
   }
 
@@ -93,6 +121,7 @@ function AdminReservations() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="font-display text-2xl">Reservations</h2>
@@ -120,11 +149,6 @@ function AdminReservations() {
       {error && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">
           {error}
-        </div>
-      )}
-      {notice && (
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm p-3">
-          {notice}
         </div>
       )}
 
@@ -167,32 +191,35 @@ function AdminReservations() {
               )}
             </div>
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              {r.status !== "confirmed" && (
-                <button
-                  onClick={() => setStatus(r, "confirmed")}
-                  disabled={busyId === r.id}
-                  className="disabled:opacity-50 btn-gold rounded-full px-4 py-2 text-xs inline-flex items-center gap-1"
-                >
-                  <Check size={14} /> Confirm
-                </button>
-              )}
-              {r.status !== "cancelled" && (
-                <button
-                  onClick={() => setStatus(r, "cancelled")}
-                  disabled={busyId === r.id}
-                  className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs inline-flex items-center gap-1 hover:border-red-400/60 hover:text-red-300"
-                >
-                  <X size={14} /> Cancel
-                </button>
-              )}
-              {r.status === "confirmed" && (
-                <button
-                  onClick={() => setStatus(r, "completed")}
-                  disabled={busyId === r.id}
-                  className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs"
-                >
-                  Mark done
-                </button>
+              {/* Only a live booking (pending or confirmed) still has moves. */}
+              {!isClosed(r.status) && (
+                <>
+                  {r.status !== "confirmed" && (
+                    <button
+                      onClick={() => setStatus(r, "confirmed")}
+                      disabled={busyId === r.id}
+                      className="disabled:opacity-50 btn-gold rounded-full px-4 py-2 text-xs inline-flex items-center gap-1"
+                    >
+                      <Check size={14} /> Confirm
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setStatus(r, "cancelled")}
+                    disabled={busyId === r.id}
+                    className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs inline-flex items-center gap-1 hover:border-red-400/60 hover:text-red-300"
+                  >
+                    <X size={14} /> Cancel
+                  </button>
+                  {r.status === "confirmed" && (
+                    <button
+                      onClick={() => setStatus(r, "completed")}
+                      disabled={busyId === r.id}
+                      className="disabled:opacity-50 rounded-full border border-border px-4 py-2 text-xs"
+                    >
+                      Mark done
+                    </button>
+                  )}
+                </>
               )}
               <button
                 onClick={() => remove(r.id)}

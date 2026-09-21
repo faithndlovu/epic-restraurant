@@ -41,15 +41,38 @@ export function emailEnabled() {
   return !!process.env.RESEND_API_KEY;
 }
 
+/** Why an email didn't send, in words an admin can act on. */
+export type EmailResult = { sent: true } | { sent: false; reason: string };
+
+/**
+ * Resend replies with JSON like
+ *   { "statusCode": 403, "message": "You can only send testing emails to…", … }
+ * and that message usually names the exact fix, so prefer it over the status.
+ */
+function resendFailureReason(status: number, body: string) {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === "object" && "message" in parsed) {
+      const message = (parsed as { message: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+  } catch {
+    // Not JSON — fall through to the status line.
+  }
+  return `Resend rejected the email with HTTP ${status}.`;
+}
+
 /**
  * Sends one email through Resend. Never throws: a failed email must not undo a
- * booking or a status change that already succeeded. Returns whether it sent.
+ * booking or a status change that already succeeded. Returns whether it sent,
+ * and if not, why — callers surface the reason instead of asking an admin to go
+ * read the server log.
  */
-export async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(to: string, subject: string, html: string): Promise<EmailResult> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn("RESEND_API_KEY not set — skipping email to", to);
-    return false;
+    return { sent: false, reason: "RESEND_API_KEY isn't configured on the server." };
   }
   // Resend's shared onboarding@resend.dev sender only delivers to the Resend
   // account owner. Set EMAIL_FROM to an address on a domain you verified in Resend.
@@ -61,13 +84,17 @@ export async function sendEmail(to: string, subject: string, html: string) {
       body: JSON.stringify({ from, to: [to], subject, html }),
     });
     if (!res.ok) {
-      console.error("Resend failed", res.status, await res.text());
-      return false;
+      const body = await res.text();
+      console.error("Resend failed", res.status, body);
+      return { sent: false, reason: resendFailureReason(res.status, body) };
     }
-    return true;
+    return { sent: true };
   } catch (e) {
     console.error("Resend error", e);
-    return false;
+    return {
+      sent: false,
+      reason: e instanceof Error ? e.message : "Could not reach Resend.",
+    };
   }
 }
 

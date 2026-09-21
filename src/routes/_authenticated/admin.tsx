@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { Toaster } from "@/components/ui/sonner";
 import { UtensilsCrossed, CalendarCheck, ShieldCheck, LayoutDashboard, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -48,6 +49,10 @@ function AdminLayout() {
           <Outlet />
         </div>
       </section>
+
+      {/* Action feedback for every admin page. richColors gives success/error/
+          warning their own palette, so a failure can't come through looking green. */}
+      <Toaster richColors closeButton position="top-right" theme="dark" />
     </SiteLayout>
   );
 }

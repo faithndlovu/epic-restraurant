@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+// Type-only, so it is erased at build time and email.server never reaches the
+// client bundle — the value import stays dynamic inside the handler below.
+import type { EmailResult } from "@/lib/email.server";
 
 const statusSchema = z.object({
   id: z.string().uuid(),
@@ -29,9 +32,9 @@ export const updateReservationStatus = createServerFn({ method: "POST" })
     // RLS hides the row from non-admins, so "no row" covers both cases.
     if (!row) throw new Error("Reservation not found, or you don't have admin access.");
 
-    let emailed = false;
+    let result: EmailResult | null = null;
     if (data.notifyGuest && (data.status === "confirmed" || data.status === "cancelled")) {
-      emailed =
+      result =
         data.status === "confirmed"
           ? await email.sendEmail(
               row.email,
@@ -45,5 +48,13 @@ export const updateReservationStatus = createServerFn({ method: "POST" })
             );
     }
 
-    return { status: row.status, emailed, emailConfigured: email.emailEnabled() };
+    return {
+      status: row.status,
+      guestEmail: row.email,
+      emailed: result?.sent ?? false,
+      // Null when we never tried (e.g. a quiet status change), so the UI can
+      // tell "didn't send" apart from "wasn't meant to send".
+      emailError: result && !result.sent ? result.reason : null,
+      emailConfigured: email.emailEnabled(),
+    };
   });

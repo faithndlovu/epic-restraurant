@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Save, X, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useConfirm } from "@/hooks/use-confirm";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/menu")({
   head: () => ({
@@ -63,6 +65,7 @@ function AdminMenu() {
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [draft, setDraft] = useState<Omit<Item, "id">>(emptyDraft());
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   async function load() {
     const { data, error } = await supabase
@@ -106,31 +109,46 @@ function AdminMenu() {
       price: Number(draft.price),
       sort_order: Number(draft.sort_order),
     };
-    if (editingId === "new") {
+    const isNew = editingId === "new";
+    if (isNew) {
       const { error } = await supabase.from("menu_items").insert(payload);
-      if (error) return setError(error.message);
+      if (error) return toast.error("Could not add the item", { description: error.message });
     } else if (editingId) {
       const { error } = await supabase.from("menu_items").update(payload).eq("id", editingId);
-      if (error) return setError(error.message);
+      if (error) return toast.error("Could not save the item", { description: error.message });
     }
+    toast.success(isNew ? `Added "${payload.name}" to the menu.` : `Saved "${payload.name}".`);
     setEditingId(null);
     load();
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this menu item?")) return;
+    if (
+      !(await confirm({
+        title: "Delete this menu item?",
+        description:
+          "It will be removed from the menu permanently. To take it off temporarily, mark it unavailable instead.",
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
+    )
+      return;
     const { error } = await supabase.from("menu_items").delete().eq("id", id);
-    if (error) return setError(error.message);
+    if (error) return toast.error("Could not delete the item", { description: error.message });
+    toast.success("Menu item deleted.");
     load();
   }
 
   async function toggleAvailable(item: Item) {
-    setError(null);
+    const nowAvailable = !item.is_available;
     const { error } = await supabase
       .from("menu_items")
-      .update({ is_available: !item.is_available })
+      .update({ is_available: nowAvailable })
       .eq("id", item.id);
-    if (error) return setError(error.message);
+    if (error) return toast.error("Could not update availability", { description: error.message });
+    toast.success(
+      nowAvailable ? `"${item.name}" is back on the menu.` : `"${item.name}" is now unavailable.`,
+    );
     load();
   }
 
@@ -138,6 +156,7 @@ function AdminMenu() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl">Menu Items</h2>

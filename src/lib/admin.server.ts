@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { getRequest } from "@tanstack/react-start/server";
 import type { Database } from "@/integrations/supabase/types";
+import { realtimeTransport } from "@/integrations/supabase/realtime-transport";
 
 /**
  * A Supabase client that acts as the user who made this request, using the
@@ -29,5 +30,6 @@ export function createUserClient() {
   return createClient<Database>(url, key, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    realtime: { transport: realtimeTransport },
   });
 }

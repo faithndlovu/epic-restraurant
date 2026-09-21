@@ -46,7 +46,10 @@ export const Route = createFileRoute("/reservations")({
 
 function Reservations() {
   const submit = useServerFn(submitReservation);
-  const [submitted, setSubmitted] = useState(false);
+  // null = not submitted yet. Once submitted, tracks whether the guest
+  // confirmation email actually went out, so we never claim we sent one.
+  const [emailed, setEmailed] = useState<boolean | null>(null);
+  const submitted = emailed !== null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -68,7 +71,7 @@ function Reservations() {
     setBusy(true);
     setError(null);
     try {
-      await submit({
+      const result = await submit({
         data: {
           name: form.name.trim(),
           email: form.email.trim(),
@@ -79,7 +82,7 @@ function Reservations() {
           requests: form.requests.trim() || null,
         },
       });
-      setSubmitted(true);
+      setEmailed(result.emailed);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(
@@ -135,13 +138,23 @@ function Reservations() {
                 </div>
                 <h3 className="font-display text-3xl">Reservation Received</h3>
                 <p className="mt-3 text-muted-foreground">
-                  Thank you! We've sent a confirmation to{" "}
-                  <strong className="text-gold">{form.email}</strong>. Our team will be in touch
-                  shortly to finalise your table.
+                  {emailed ? (
+                    <>
+                      Thank you! We've sent a confirmation to{" "}
+                      <strong className="text-gold">{form.email}</strong>. Your request is with our
+                      team for review and we'll be in touch shortly to finalise your table.
+                    </>
+                  ) : (
+                    <>
+                      Thank you! Your request has been sent to our team for review — we'll contact
+                      you at <strong className="text-gold">{form.email}</strong> shortly to finalise
+                      your table.
+                    </>
+                  )}
                 </p>
                 <button
                   onClick={() => {
-                    setSubmitted(false);
+                    setEmailed(null);
                     setForm({
                       name: "",
                       email: "",

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useConfirm } from "@/hooks/use-confirm";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/admins")({
   head: () => ({
@@ -28,7 +30,7 @@ function AdminAdmins() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   // All three calls are database functions that re-check the caller is an
   // admin, so this page can't be used to escalate privileges.
@@ -44,35 +46,48 @@ function AdminAdmins() {
 
   async function grant(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setNotice(null);
     setBusy(true);
     const target = email.trim();
     const { error } = await supabase.rpc("grant_admin", { _email: target });
     setBusy(false);
-    if (error) return setError(error.message);
-    setNotice(`${target} is now an admin. They'll see the Admin link next time they sign in.`);
+    if (error) return toast.error("Could not grant admin access", { description: error.message });
+    toast.success(`${target} is now an admin`, {
+      description: "They'll see the Admin link next time they sign in.",
+    });
     setEmail("");
     load();
   }
 
   async function revoke(admin: Admin) {
     const isSelf = admin.user_id === user?.id;
-    const question = isSelf
-      ? "Remove your own admin access? You'll be sent out of the admin area immediately."
-      : `Remove admin access for ${admin.email}?`;
-    if (!confirm(question)) return;
-    setError(null);
-    setNotice(null);
+    const ok = await confirm(
+      isSelf
+        ? {
+            title: "Remove your own admin access?",
+            description:
+              "You'll be sent out of the admin area immediately and won't be able to get back in unless another admin grants you access again.",
+            confirmLabel: "Remove my access",
+            destructive: true,
+          }
+        : {
+            title: `Remove admin access for ${admin.email}?`,
+            description:
+              "They'll keep their account but lose the admin area, including the menu and reservations. You can grant it back at any time.",
+            confirmLabel: "Remove access",
+            destructive: true,
+          },
+    );
+    if (!ok) return;
     const { error } = await supabase.rpc("revoke_admin", { _user_id: admin.user_id });
-    if (error) return setError(error.message);
+    if (error) return toast.error("Could not remove admin access", { description: error.message });
     if (isSelf) return navigate({ to: "/" });
-    setNotice(`${admin.email} is no longer an admin.`);
+    toast.success(`${admin.email} is no longer an admin.`);
     load();
   }
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div>
         <h2 className="font-display text-2xl">Admins</h2>
         <p className="text-sm text-muted-foreground">
@@ -112,11 +127,6 @@ function AdminAdmins() {
       {error && (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">
           {error}
-        </div>
-      )}
-      {notice && (
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm p-3">
-          {notice}
         </div>
       )}
 
