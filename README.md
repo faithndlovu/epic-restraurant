@@ -107,7 +107,7 @@ builds and deploys, but parts of it will not work for a visitor.
    | Detail | Value on the site | Source |
    | --- | --- | --- |
    | Address | 12th Avenue & Jason Moyo, Bulawayo | Their own Facebook posts |
-   | Phone | +263 78 946 1108 | Public listings |
+   | Phone | +263 78 946 1108 | Public listings and their own channels |
    | Hours | 8AM – 10PM, daily | Their own channels |
    | Instagram | [@epic.11.2022](https://www.instagram.com/epic.11.2022/) | Verified |
    | Facebook | [Epic Restaurant Bulawayo](https://www.facebook.com/p/Epic-Restaurant-Bulawayo-100086311914355/) | Verified, ~13.8k followers |
