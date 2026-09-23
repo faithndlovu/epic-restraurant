@@ -80,13 +80,15 @@ builds and deploys, but parts of it will not work for a visitor.
    as the Site URL and in the redirect allowlist
    (`https://epic-restraurant.vercel.app/auth/callback`).
 
-4. **Google sign-in.** The "Continue with Google" button uses native Supabase
-   OAuth and currently fails with `provider is not enabled`. Create a Web
+4. **Google sign-in is currently disabled.** The "Continue with Google" button
+   and its `onGoogle` handler are commented out in `src/routes/auth.tsx`,
+   because the provider is not enabled on the Supabase project and the button
+   only produced `Unsupported provider: provider is not enabled`. Email and
+   password sign-in is unaffected. To turn Google back on: create a Web
    application OAuth client in the Google Cloud console with
    `https://isawexccruqpiecjmrgs.supabase.co/auth/v1/callback` as the authorized
-   redirect URI, then enable Google under Authentication → Providers in Supabase
-   and paste in the client ID and secret. Otherwise remove the button from
-   `src/routes/auth.tsx`.
+   redirect URI, enable Google under Authentication → Providers in Supabase,
+   paste in the client ID and secret, then uncomment both blocks.
 
 5. **Email delivery.** Reservation and contact emails go through Resend and are
    best-effort: a booking or message is always stored first, so a failed send

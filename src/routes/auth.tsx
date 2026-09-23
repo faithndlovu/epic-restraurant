@@ -66,16 +66,26 @@ function AuthPage() {
     }
   }
 
-  async function onGoogle() {
-    setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) setError(error.message ?? "Google sign-in failed");
-    // On success Supabase redirects the browser to Google, which comes back
-    // to /auth/callback with the session in the URL.
-  }
+  // Google sign-in is commented out until the provider is switched on in the
+  // Supabase dashboard (Authentication → Providers → Google). Until then the
+  // button only produces "Unsupported provider: provider is not enabled", and a
+  // missing button reads as deliberate where a broken one does not.
+  //
+  // To switch it back on: uncomment this function and the button below, enable
+  // the provider with a Google Cloud OAuth client whose authorized redirect URI
+  // is https://<project>.supabase.co/auth/v1/callback, and make sure the site's
+  // own /auth/callback URL is in the Supabase redirect allowlist.
+  //
+  // async function onGoogle() {
+  //   setError(null);
+  //   const { error } = await supabase.auth.signInWithOAuth({
+  //     provider: "google",
+  //     options: { redirectTo: `${window.location.origin}/auth/callback` },
+  //   });
+  //   if (error) setError(error.message ?? "Google sign-in failed");
+  //   // On success Supabase redirects the browser to Google, which comes back
+  //   // to /auth/callback with the session in the URL.
+  // }
 
   return (
     <SiteLayout>
@@ -88,6 +98,8 @@ function AuthPage() {
             </p>
           </div>
 
+          {/* Disabled alongside onGoogle() above — see the note there for how to
+              turn Google sign-in back on.
           <button
             onClick={onGoogle}
             className="w-full rounded-full border border-border bg-secondary hover:border-gold/50 transition px-5 py-3 text-sm font-medium flex items-center justify-center gap-3"
@@ -116,6 +128,7 @@ function AuthPage() {
           <div className="flex items-center gap-3 my-6 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" /> OR <span className="h-px flex-1 bg-border" />
           </div>
+          */}
 
           <form onSubmit={onSubmit} className="space-y-4">
             {mode === "signup" && (
