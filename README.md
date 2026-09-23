@@ -52,16 +52,77 @@ must be present at **build** time.
 
 ## Things you still need to do
 
-1. **Apply the menu-image migration.** The site images now live in
-   `public/images/` and are wired into the homepage, About, Gallery, etc. via
-   `src/assets/images.ts`. The public **Menu** page (`/menu`), however, reads
-   images from the `menu_items` table in Supabase, which may still hold the old
-   external CDN URLs. Run the new migration
-   `supabase/migrations/20260624190000_update_menu_images.sql` against your
-   database (e.g. `supabase db push`, or paste it into the Supabase SQL editor)
-   to point those rows at the local images. You can also edit images per-dish in
-   the admin panel (`/admin/menu`).
-2. **Google sign-in.** The "Continue with Google" button now uses native Supabase
-   OAuth. Enable the Google provider in your Supabase dashboard
-   (Authentication → Providers → Google) and add your site URL to the allowed
-   redirect URLs, or remove the button from `src/routes/auth.tsx`.
+These are the steps that live outside the codebase. Until they are done the site
+builds and deploys, but parts of it will not work for a visitor.
+
+1. **Apply the outstanding migrations.** Two migrations in
+   `supabase/migrations/` are not in the hosted database yet. Run them with
+   `supabase db push`, or paste each file into the Supabase SQL editor:
+   - `20260921120000_bootstrap_admins.sql` — the allowlist that makes the first
+     admin account possible.
+   - `20260923120000_contact_and_newsletter.sql` — the `contact_messages` and
+     `newsletter_subscribers` tables. **The contact form and the newsletter
+     signup both fail until this one is applied.**
+
+2. **Name the first admin.** `grant_admin()` refuses anyone who is not already
+   an admin, so the first one is seeded by hand. In the SQL editor:
+
+   ```sql
+   insert into public.bootstrap_admins (email) values ('owner@example.com');
+   select public.sync_bootstrap_admins();   -- if that account already signed up
+   ```
+
+3. **Use the right site URL everywhere.** This project is deployed at
+   `https://epic-restraurant.vercel.app` — note the spelling. The correctly
+   spelled `epic-restaurant.vercel.app` belongs to an unrelated project, so
+   pointing auth at it sends users to somebody else's website. The misspelled
+   host is what belongs in Supabase → Authentication → URL Configuration, both
+   as the Site URL and in the redirect allowlist
+   (`https://epic-restraurant.vercel.app/auth/callback`).
+
+4. **Google sign-in.** The "Continue with Google" button uses native Supabase
+   OAuth and currently fails with `provider is not enabled`. Create a Web
+   application OAuth client in the Google Cloud console with
+   `https://isawexccruqpiecjmrgs.supabase.co/auth/v1/callback` as the authorized
+   redirect URI, then enable Google under Authentication → Providers in Supabase
+   and paste in the client ID and secret. Otherwise remove the button from
+   `src/routes/auth.tsx`.
+
+5. **Email delivery.** Reservation and contact emails go through Resend and are
+   best-effort: a booking or message is always stored first, so a failed send
+   never loses it. To make sends actually land, verify a domain in Resend and set
+   `EMAIL_FROM` to an address on it. The default sender
+   (`onboarding@resend.dev`) only delivers to the Resend account owner, so every
+   other guest gets a 403. `RESTAURANT_EMAIL` is where staff notifications go; if
+   it is unset, no staff email is sent at all.
+
+6. **Set the environment variables in Vercel**, not just in your local `.env`
+   (Project → Settings → Environment Variables). The `VITE_*` keys must be
+   present at **build** time.
+
+7. **Confirm the business details with the restaurant.** The site's address,
+   phone, hours, Instagram and Facebook links were taken from Epic's own public
+   channels and cross-checked, but only the owner can confirm them:
+
+   | Detail | Value on the site | Source |
+   | --- | --- | --- |
+   | Address | 12th Avenue & Jason Moyo, Bulawayo | Their own Facebook posts |
+   | Phone | +263 78 946 1108 | Public listings |
+   | Hours | 8AM – 10PM, daily | Their own channels |
+   | Instagram | [@epic.11.2022](https://www.instagram.com/epic.11.2022/) | Verified |
+   | Facebook | [Epic Restaurant Bulawayo](https://www.facebook.com/p/Epic-Restaurant-Bulawayo-100086311914355/) | Verified, ~13.8k followers |
+   | Email | epicrestaurant22@gmail.com | **Unverified** — came with the original build |
+
+   Two things worth raising with them: `epicrestaurant.co.zw` shows up in search
+   results as their website but the domain does not currently resolve, and a
+   "Best Restaurant in Bulawayo / Bulawayo Business Awards" claim circulates on
+   aggregator sites that appear to be auto-generated, so it is **not** used
+   anywhere on this site. Ask before adding it.
+
+   The fabricated content that used to be here is gone: the homepage stat strip
+   ("60+ Signature Dishes", "10k+ Plates Served", "4.6 Guest Rating") now carries
+   only checkable facts, the three invented guest testimonials were replaced with
+   what the restaurant says about itself plus a link to its real Facebook
+   reviews, the unsourced head-chef quote on the About page was removed, and the
+   invented `aggregateRating` is out of the JSON-LD in
+   `src/lib/structured-data.ts`.

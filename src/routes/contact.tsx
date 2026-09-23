@@ -1,7 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Phone, MapPin, Clock, Instagram, MessageCircle, Check } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  Instagram,
+  Facebook,
+  MessageCircle,
+  Check,
+} from "lucide-react";
 import { SiteLayout, SectionHeading } from "@/components/site/SiteLayout";
+import { submitContactMessage } from "@/lib/contact.functions";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -22,7 +33,43 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
-  const [sent, setSent] = useState(false);
+  const send = useServerFn(submitContactMessage);
+  // null = nothing submitted yet. Once submitted it holds whether the team was
+  // emailed, so the confirmation can promise a reply only when one will reach them.
+  const [notified, setNotified] = useState<boolean | null>(null);
+  const sent = notified !== null;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+
+  function update<K extends keyof typeof form>(k: K, v: string) {
+    setForm({ ...form, [k]: v });
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await send({
+        data: {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          subject: form.subject.trim(),
+          message: form.message.trim(),
+        },
+      });
+      setNotified(result.notified);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not send your message. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <SiteLayout>
       <section className="py-20 md:py-28 bg-charcoal border-b border-border">
@@ -64,12 +111,27 @@ function Contact() {
             <div className="flex gap-3 pt-2">
               <a
                 href="https://instagram.com/epic.11.2022"
+                aria-label="Instagram"
+                target="_blank"
+                rel="noreferrer"
                 className="h-11 w-11 grid place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-charcoal transition"
               >
                 <Instagram size={16} />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/p/Epic-Restaurant-Bulawayo-100086311914355/"
+                aria-label="Facebook"
+                target="_blank"
+                rel="noreferrer"
+                className="h-11 w-11 grid place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-charcoal transition"
+              >
+                <Facebook size={16} />
+              </a>
+              <a
+                href="https://wa.me/263789461108"
+                aria-label="WhatsApp"
+                target="_blank"
+                rel="noreferrer"
                 className="h-11 w-11 grid place-items-center rounded-full border border-gold/40 text-gold hover:bg-gold hover:text-charcoal transition"
               >
                 <MessageCircle size={16} />
@@ -85,51 +147,92 @@ function Contact() {
                 </div>
                 <h3 className="font-display text-3xl">Message Sent</h3>
                 <p className="mt-3 text-muted-foreground">
-                  Thanks for reaching out — we'll respond within one business day.
+                  {notified ? (
+                    <>
+                      Thanks for reaching out — your message is with our team and we'll respond
+                      within one business day.
+                    </>
+                  ) : (
+                    <>
+                      Thanks for reaching out — we have your message and will respond within one
+                      business day. In a hurry? Call us on{" "}
+                      <a href="tel:+263789461108" className="text-gold hover:underline">
+                        078 946 1108
+                      </a>
+                      .
+                    </>
+                  )}
                 </p>
                 <button
-                  onClick={() => setSent(false)}
+                  onClick={() => {
+                    setNotified(null);
+                    setForm({ name: "", email: "", subject: "", message: "" });
+                  }}
                   className="mt-8 btn-outline-gold rounded-full px-6 py-2.5 text-sm"
                 >
                   Send Another
                 </button>
               </div>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSent(true);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="grid md:grid-cols-2 gap-5"
-              >
+              <form onSubmit={onSubmit} className="grid md:grid-cols-2 gap-5">
                 <label className="block">
                   <span className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 block">
                     Name
                   </span>
-                  <input required className={input} />
+                  <input
+                    required
+                    value={form.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    className={input}
+                  />
                 </label>
                 <label className="block">
                   <span className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 block">
                     Email
                   </span>
-                  <input type="email" required className={input} />
+                  <input
+                    type="email"
+                    required
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    className={input}
+                  />
                 </label>
                 <label className="block md:col-span-2">
                   <span className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 block">
                     Subject
                   </span>
-                  <input required className={input} />
+                  <input
+                    required
+                    value={form.subject}
+                    onChange={(e) => update("subject", e.target.value)}
+                    className={input}
+                  />
                 </label>
                 <label className="block md:col-span-2">
                   <span className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 block">
                     Message
                   </span>
-                  <textarea rows={5} required className={input + " resize-none"} />
+                  <textarea
+                    rows={5}
+                    required
+                    value={form.message}
+                    onChange={(e) => update("message", e.target.value)}
+                    className={input + " resize-none"}
+                  />
                 </label>
+                {error && (
+                  <div className="md:col-span-2 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-md p-3">
+                    {error}
+                  </div>
+                )}
                 <div className="md:col-span-2">
-                  <button className="btn-gold rounded-full px-8 py-3.5 text-sm font-semibold tracking-wide">
-                    Send Message
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    className="btn-gold rounded-full px-8 py-3.5 text-sm font-semibold tracking-wide disabled:opacity-60"
+                  >
+                    {busy ? "Sending…" : "Send Message"}
                   </button>
                 </div>
               </form>

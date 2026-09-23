@@ -151,6 +151,24 @@ export function cancelledEmail(d: ReservationDetails) {
   );
 }
 
+export function contactNotificationEmail(d: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
+  return `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:24px">
+  <h2 style="margin:0 0 12px">Message from the website</h2>
+  <table cellpadding="6" style="border-collapse:collapse">
+    <tr><td><b>Name</b></td><td>${escapeHtml(d.name)}</td></tr>
+    <tr><td><b>Email</b></td><td>${escapeHtml(d.email)}</td></tr>
+    <tr><td><b>Subject</b></td><td>${escapeHtml(d.subject)}</td></tr>
+  </table>
+  <p style="white-space:pre-wrap;line-height:1.6;margin-top:16px">${escapeHtml(d.message)}</p>
+  <p style="color:#666;font-size:12px;margin-top:24px">Reply straight to ${escapeHtml(d.email)}.</p>
+  </body></html>`;
+}
+
 export function staffNotificationEmail(d: ReservationDetails) {
   return `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:24px">
   <h2 style="margin:0 0 12px">New reservation</h2>

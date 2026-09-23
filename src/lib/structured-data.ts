@@ -1,20 +1,26 @@
 export const RESTAURANT_INFO = {
   name: "Epic Restaurant",
   description:
-    "Vibrant Zimbabwean flavors, signature steaks, pizzas, and an unforgettable atmosphere in the heart of Bulawayo.",
+    "Fine dining, premium cuts and tshisanyama under one roof — Zimbabwean and international dishes served daily on the corner of 12th Avenue and Jason Moyo, Bulawayo.",
   url: "/",
-  telephone: "+263-29-2222-222",
-  email: "hello@epicrestaurant.test",
-  streetAddress: "12 Main Street",
+  // Keep these in step with the Footer and the Contact page — search engines
+  // read this copy, visitors read those, and they used to disagree.
+  telephone: "+263-78-946-1108",
+  email: "epicrestaurant22@gmail.com",
+  streetAddress: "12th Avenue & Jason Moyo",
   addressLocality: "Bulawayo",
   addressRegion: "Bulawayo",
-  postalCode: "00000",
   addressCountry: "ZW",
   priceRange: "$$",
   servesCuisine: ["Zimbabwean", "International", "Grill", "Breakfast"],
   openingHours: "Mo-Su 08:00-22:00",
   geo: { latitude: -20.1532, longitude: 28.5891 },
-  sameAs: ["https://www.facebook.com/epicrestaurant", "https://www.instagram.com/epicrestaurant"],
+  // The restaurant's own public channels. epicrestaurant.co.zw appears in
+  // search results but does not currently resolve, so it is left out.
+  sameAs: [
+    "https://www.instagram.com/epic.11.2022",
+    "https://www.facebook.com/p/Epic-Restaurant-Bulawayo-100086311914355/",
+  ],
 };
 
 export function restaurantJsonLd(image?: string) {
@@ -35,7 +41,6 @@ export function restaurantJsonLd(image?: string) {
       streetAddress: RESTAURANT_INFO.streetAddress,
       addressLocality: RESTAURANT_INFO.addressLocality,
       addressRegion: RESTAURANT_INFO.addressRegion,
-      postalCode: RESTAURANT_INFO.postalCode,
       addressCountry: RESTAURANT_INFO.addressCountry,
     },
     geo: {
@@ -52,11 +57,10 @@ export function restaurantJsonLd(image?: string) {
       },
     ],
     sameAs: RESTAURANT_INFO.sameAs,
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.6",
-      reviewCount: "120",
-    },
+    // No aggregateRating here on purpose. It used to claim 4.6 from 120 reviews,
+    // which was invented — Google's structured-data policy requires ratings to
+    // come from real reviews the site actually displays. Add it back when there
+    // is a genuine source to point at.
   };
 }
 

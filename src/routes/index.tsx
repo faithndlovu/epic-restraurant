@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteLayout, SectionHeading } from "@/components/site/SiteLayout";
-import { ArrowRight, Star, Quote, ChefHat, Utensils, Wine, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { ArrowRight, Star, ChefHat, Utensils, Wine, Clock } from "lucide-react";
 import {
   mixedGrill as hero,
   breakfast as img3,
@@ -31,8 +33,44 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+type Featured = { id: string; name: string; price: number; image: string; tag?: string | null };
+
+// What the server renders, and what stays on screen if the live fetch fails.
+// Without it the section would flash empty on every load and disappear entirely
+// for crawlers, which is worse than a few seconds of slightly stale dishes.
+const FALLBACK_FEATURED: Featured[] = menu
+  .filter((m) => ["m1", "m2", "m3", "d2"].includes(m.id))
+  .map((m) => ({ id: m.id, name: m.name, price: m.price, image: m.image, tag: m.tag }));
+
 function Home() {
-  const featured = menu.filter((m) => ["m1", "m2", "m3", "d2"].includes(m.id));
+  const [featured, setFeatured] = useState<Featured[]>(FALLBACK_FEATURED);
+
+  // The full menu at /menu reads menu_items, so the homepage has to as well —
+  // otherwise editing a dish in the admin console leaves the front page showing
+  // the old one, which is the first thing anyone tries after an edit.
+  useEffect(() => {
+    supabase
+      .from("menu_items")
+      .select("id,name,price,image_url,tag,sort_order")
+      .eq("is_available", true)
+      .order("sort_order")
+      .then(({ data, error }) => {
+        if (error || !data?.length) return;
+        // Tagged dishes are the ones staff marked as specials, so they lead.
+        const tagged = data.filter((d) => d.tag);
+        const untagged = data.filter((d) => !d.tag);
+        setFeatured(
+          [...tagged, ...untagged].slice(0, 4).map((d) => ({
+            id: d.id,
+            name: d.name,
+            price: Number(d.price),
+            image: d.image_url ?? "",
+            tag: d.tag,
+          })),
+        );
+      });
+  }, []);
+
   return (
     <SiteLayout>
       {/* HERO */}
@@ -89,11 +127,15 @@ function Home() {
       {/* HIGHLIGHTS / STATS */}
       <section className="border-y border-border bg-charcoal/40">
         <div className="mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-4 px-6 md:px-8">
+          {/* Every figure here is checkable against a public source. The strip
+              used to read "60+ Signature Dishes / 10k+ Plates Served / 4.6 Guest
+              Rating", none of which was true — the menu holds 13 dishes and no
+              rating had been collected. */}
           {[
-            { icon: ChefHat, value: "60+", label: "Signature Dishes" },
-            { icon: Utensils, value: "10k+", label: "Plates Served" },
-            { icon: Star, value: "4.6", label: "Guest Rating" },
-            { icon: Clock, value: "Since '22", label: "Crafting Memories" },
+            { icon: ChefHat, value: "Tshisanyama", label: "Grills & Premium Cuts" },
+            { icon: Utensils, value: "13.8k", label: "Facebook Followers" },
+            { icon: Clock, value: "8AM – 10PM", label: "Open Every Day" },
+            { icon: Star, value: "Since 2022", label: "Serving Bulawayo" },
           ].map(({ icon: Icon, value, label }) => (
             <div
               key={label}
@@ -202,52 +244,57 @@ function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* WHAT EPIC IS KNOWN FOR */}
+      {/* This was a "What Our Guests Say" block holding three invented guest
+          quotes — "Tendai M.", "Sarah K." and "Brian N." — each under a row of
+          five gold stars. None of those people exist. It now carries what the
+          restaurant actually says about itself on its own channels, and sends
+          anyone who wants opinions to the real reviews. */}
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <SectionHeading eyebrow="Kind Words" title="What Our Guests Say" />
+          <SectionHeading
+            eyebrow="On the Corner of 12th & Jason Moyo"
+            title="What Epic Is Known For"
+          />
           <div className="mt-16 grid md:grid-cols-3 gap-6">
             {[
               {
-                quote:
-                  "The epic pizza is unreal and the chicken & chips is a generous feast. We keep coming back.",
-                name: "Tendai M.",
-                role: "Regular guest",
+                icon: ChefHat,
+                title: "Fine Dining & Tshisanyama",
+                body: "Premium cuts, flame-grilled tshisanyama and a full fine-dining menu — all under one roof.",
               },
               {
-                quote:
-                  "The beef steak was perfectly cooked and the cappuccino was the best I've had in Bulawayo.",
-                name: "Sarah K.",
-                role: "First visit",
+                icon: Utensils,
+                title: "Local & International",
+                body: "Zimbabwean classics like sadza and beef stew sit alongside pizzas, grills and all-day breakfast.",
               },
               {
-                quote:
-                  "Wide selection, warm service and a wonderful place to celebrate. The ice cream is divine.",
-                name: "Brian N.",
-                role: "Family dinner",
+                icon: Clock,
+                title: "Open Every Day",
+                body: "Breakfast, lunch and dinner from 8AM to 10PM, seven days a week, in the heart of the city.",
               },
-            ].map((t) => (
-              <figure key={t.name} className="relative rounded-xl border border-border bg-card p-8">
-                <Quote className="text-gold/40" size={32} />
-                <blockquote className="mt-4 text-foreground/90 leading-relaxed">
-                  "{t.quote}"
-                </blockquote>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gold to-wine grid place-items-center font-display text-charcoal">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <figcaption className="text-sm font-medium">{t.name}</figcaption>
-                    <div className="text-xs text-muted-foreground">{t.role}</div>
-                  </div>
+            ].map(({ icon: Icon, title, body }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-border bg-card p-8 hover:border-gold/50 transition"
+              >
+                <div className="h-11 w-11 rounded-full bg-gold/10 grid place-items-center text-gold">
+                  <Icon size={18} />
                 </div>
-                <div className="mt-4 flex gap-0.5 text-gold">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} fill="currentColor" />
-                  ))}
-                </div>
-              </figure>
+                <h3 className="mt-5 font-display text-xl">{title}</h3>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{body}</p>
+              </div>
             ))}
+          </div>
+          <div className="text-center mt-12">
+            <a
+              href="https://www.facebook.com/p/Epic-Restaurant-Bulawayo-100086311914355/"
+              target="_blank"
+              rel="noreferrer"
+              className="btn-outline-gold rounded-full px-8 py-3 text-sm font-medium inline-flex items-center gap-2"
+            >
+              Read Guest Reviews on Facebook <ArrowRight size={16} />
+            </a>
           </div>
         </div>
       </section>

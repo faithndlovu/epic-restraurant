@@ -99,14 +99,17 @@ function About() {
         <div className="mx-auto max-w-7xl px-6 md:px-8 grid md:grid-cols-2 gap-16 items-center">
           <div className="order-2 md:order-1">
             <SectionHeading eyebrow="The Kitchen" title="Meet our Head Chef" align="left" />
+            {/* The specific claim here used to be "over a decade of experience
+                across Southern Africa", followed by a quotation attributed to
+                the head chef. Neither could be sourced, and an invented quote in
+                quotation marks reads as a real one. Swap in the chef's actual
+                background and words when the restaurant provides them. */}
             <p className="mt-6 text-muted-foreground leading-relaxed">
-              With over a decade of experience across Southern Africa, our head chef leads a team
-              devoted to flavor, precision and warmth. Every dish that leaves our pass carries the
-              signature of a kitchen that genuinely loves what it does.
+              Our kitchen runs on open flame — tshisanyama and premium cuts grilled to order,
+              alongside the Zimbabwean classics and all-day breakfast Bulawayo knows us for. Every
+              dish that leaves our pass carries the signature of a team that genuinely loves what it
+              does.
             </p>
-            <blockquote className="mt-6 border-l-2 border-gold pl-6 text-foreground/90 font-display text-xl italic">
-              "We don't just cook food — we craft moments worth remembering."
-            </blockquote>
           </div>
           <img
             src={staff.url}

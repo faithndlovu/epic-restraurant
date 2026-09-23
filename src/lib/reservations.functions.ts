@@ -32,18 +32,22 @@ export const submitReservation = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const staffTo = process.env.RESTAURANT_EMAIL || "bookings@epicrestaurant.test";
+    // No fallback address: epicrestaurant.test isn't a deliverable domain, so
+    // the old default turned a missing variable into a silent bounce.
+    const staffTo = process.env.RESTAURANT_EMAIL;
     const [guestSent] = await Promise.all([
       email.sendEmail(
         data.email,
         "We've received your Epic Restaurant booking",
         email.receivedEmail(data),
       ),
-      email.sendEmail(
-        staffTo,
-        `New booking · ${data.name} · ${email.formatDate(data.reservation_date)}`,
-        email.staffNotificationEmail(data),
-      ),
+      staffTo
+        ? email.sendEmail(
+            staffTo,
+            `New booking · ${data.name} · ${email.formatDate(data.reservation_date)}`,
+            email.staffNotificationEmail(data),
+          )
+        : Promise.resolve(null),
     ]);
 
     return { id: row.id as string, emailed: guestSent.sent };

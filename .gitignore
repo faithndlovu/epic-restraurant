@@ -32,3 +32,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Stray build artefact that used to get committed from the repo root
+.idx.js

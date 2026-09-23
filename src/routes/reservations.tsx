@@ -13,7 +13,7 @@ export const Route = createFileRoute("/reservations")({
       {
         name: "description",
         content:
-          "Reserve your table at Epic Restaurant in Bulawayo. Quick and easy online booking with instant email confirmation.",
+          "Reserve your table at Epic Restaurant in Bulawayo. Send a booking request online and our team confirms it with you directly.",
       },
       { property: "og:title", content: "Reservations — Epic Restaurant" },
       { property: "og:description", content: "Reserve your table at Epic Restaurant in Bulawayo." },
@@ -102,7 +102,7 @@ function Reservations() {
           <SectionHeading
             eyebrow="Reservations"
             title="Reserve Your Table"
-            description="Tell us when you'd like to join us — you'll receive an email confirmation right away."
+            description="Tell us when you'd like to join us and our team will confirm your table."
           />
         </div>
       </section>
@@ -120,8 +120,8 @@ function Reservations() {
                   PM
                 </li>
                 <li className="flex gap-2">
-                  <Clock className="text-gold shrink-0" size={16} /> Confirmation email sent
-                  instantly
+                  <Clock className="text-gold shrink-0" size={16} /> We confirm every booking by
+                  email
                 </li>
                 <li className="flex gap-2">
                   <Users className="text-gold shrink-0" size={16} /> Groups of 10+ — please call us

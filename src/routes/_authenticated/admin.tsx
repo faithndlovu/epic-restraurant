@@ -14,12 +14,39 @@ export const Route = createFileRoute("/_authenticated/admin")({
       .eq("user_id", user.id)
       .eq("role", "admin")
       .maybeSingle();
-    if (!data) throw redirect({ to: "/" });
+    // Deliberately not a redirect. Bouncing a signed-in user to the homepage
+    // without a word reads as a broken site; the component says what happened.
+    return { isAdmin: !!data };
   },
   component: AdminLayout,
 });
 
 function AdminLayout() {
+  const { isAdmin } = Route.useRouteContext();
+
+  if (!isAdmin) {
+    return (
+      <SiteLayout>
+        <section className="py-32">
+          <div className="mx-auto max-w-lg px-6 text-center">
+            <ShieldCheck className="mx-auto text-gold/60" size={40} />
+            <h1 className="mt-6 font-display text-3xl">Admin access required</h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              You're signed in, but this account doesn't have admin rights. Ask an existing admin to
+              add you from the Admins tab of the console.
+            </p>
+            <Link
+              to="/"
+              className="mt-8 inline-block btn-outline-gold rounded-full px-6 py-2.5 text-sm"
+            >
+              Back to the site
+            </Link>
+          </div>
+        </section>
+      </SiteLayout>
+    );
+  }
+
   return (
     <SiteLayout>
       <section className="py-24 md:py-28 bg-charcoal border-b border-border">
