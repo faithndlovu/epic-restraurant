@@ -1,2 +1,14 @@
+# TEMPORARY — this site is an unapproved proposal built for Epic Restaurant.
+# It carries their name, photos and contact details, so until they agree to it
+# going live nothing here should be crawled or indexed.
+#
+# To launch: replace the two lines below with
+#   User-agent: *
+#   Allow: /
+# and remove the noindex meta tag in src/routes/__root.tsx.
+#
+# Note: crawlers that honour this file will not fetch the pages, so they will
+# never see the noindex tag either. The tag is the one that does the real work
+# if anything ever reaches the site through a link.
 User-agent: *
-Allow: /
+Disallow: /

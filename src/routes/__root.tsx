@@ -68,6 +68,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // TEMPORARY — remove this line (and restore public/robots.txt) once the
+      // restaurant has agreed to the site going live.
+      //
+      // Until then the site carries their name, photos, address and phone
+      // number without their say-so, so it must not turn up in a search for
+      // "Epic Restaurant Bulawayo". This noindex is the part search engines
+      // actually obey for keeping a page out of the index; robots.txt only
+      // asks them not to crawl.
+      { name: "robots", content: "noindex,nofollow" },
       { title: "Epic Restaurant — The Finest Diner in Bulawayo" },
       {
         name: "description",
